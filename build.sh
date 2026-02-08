@@ -30,5 +30,8 @@ swiftc \
 # Info.plist 복사
 cp Info.plist "${CONTENTS_DIR}/Info.plist"
 
+# 코드 서명
+codesign -f -s - "${APP_BUNDLE}"
+
 echo "빌드 완료: ${APP_BUNDLE}"
 echo "실행: open ${APP_BUNDLE}"

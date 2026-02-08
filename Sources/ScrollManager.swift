@@ -1,5 +1,19 @@
 import CoreGraphics
 import ApplicationServices
+import Foundation
+
+/// start() 결과를 구분하기 위한 enum
+enum StartResult {
+    case success
+    case alreadyRunning
+    case needsAccessibility
+    case eventTapFailed
+}
+
+/// 상태 변경 알림 이름
+extension Notification.Name {
+    static let scrollReversalStateChanged = Notification.Name("scrollReversalStateChanged")
+}
 
 /// 마우스 스크롤 방향을 반전시키는 매니저 (트랙패드는 영향 없음)
 class ScrollManager {
@@ -7,18 +21,18 @@ class ScrollManager {
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var permissionTimer: Timer?
     private(set) var isRunning = false
 
     private init() {}
 
-    func start() -> Bool {
-        guard !isRunning else { return true }
+    func start() -> StartResult {
+        guard !isRunning else { return .alreadyRunning }
 
         if !AXIsProcessTrusted() {
-            // 접근성 권한 요청 다이얼로그 표시
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
-            return false
+            return .needsAccessibility
         }
 
         let eventMask: CGEventMask = (1 << CGEventType.scrollWheel.rawValue)
@@ -31,7 +45,7 @@ class ScrollManager {
             callback: scrollCallback,
             userInfo: nil
         ) else {
-            return false
+            return .eventTapFailed
         }
 
         eventTap = tap
@@ -42,10 +56,13 @@ class ScrollManager {
         CGEvent.tapEnable(tap: tap, enable: true)
 
         isRunning = true
-        return true
+        stopPermissionPolling()
+        NotificationCenter.default.post(name: .scrollReversalStateChanged, object: nil)
+        return .success
     }
 
     func stop() {
+        stopPermissionPolling()
         guard isRunning else { return }
 
         if let tap = eventTap {
@@ -59,8 +76,34 @@ class ScrollManager {
         eventTap = nil
         runLoopSource = nil
         isRunning = false
+        NotificationCenter.default.post(name: .scrollReversalStateChanged, object: nil)
+    }
+
+    func startPermissionPolling() {
+        stopPermissionPolling()
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            if AXIsProcessTrusted() {
+                timer.invalidate()
+                self?.permissionTimer = nil
+                let result = self?.start() ?? .eventTapFailed
+                if result == .success {
+                    UserDefaults.standard.set(true, forKey: "scrollReversalEnabled")
+                }
+            }
+        }
+    }
+
+    func stopPermissionPolling() {
+        permissionTimer?.invalidate()
+        permissionTimer = nil
+    }
+
+    var isPollingForPermission: Bool {
+        return permissionTimer != nil
     }
 }
+
+// MARK: - Event Tap Callback
 
 private func scrollCallback(
     proxy: CGEventTapProxy,
@@ -69,32 +112,37 @@ private func scrollCallback(
     userInfo: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-        // 이벤트 탭이 비활성화된 경우, ScrollManager를 통해 재활성화
         ScrollManager.shared.reEnableTap()
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     guard type == .scrollWheel else {
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
-    // isContinuous가 0이면 마우스, 1이면 트랙패드
+    // isContinuous: 0 = 마우스, 1 = 트랙패드
     let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous)
     if isContinuous != 0 {
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
-    // 마우스 스크롤 방향 반전 (세로축)
-    let delta = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
-    event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: -delta)
+    // 원본 델타 읽기
+    let delta1 = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+    let delta2 = event.getIntegerValueField(.scrollWheelEventDeltaAxis2)
 
-    let pointDelta = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
-    event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: -pointDelta)
+    // IOHIDEvent가 없는 새 스크롤 이벤트 생성 (반전된 값)
+    guard let newEvent = CGEvent(
+        scrollWheelEvent2Source: CGEventSource(event: event),
+        units: .line,
+        wheelCount: 2,
+        wheel1: Int32(-delta1),
+        wheel2: Int32(-delta2),
+        wheel3: 0
+    ) else {
+        return Unmanaged.passUnretained(event)
+    }
 
-    let fixedPtDelta = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
-    event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: -fixedPtDelta)
-
-    return Unmanaged.passRetained(event)
+    return Unmanaged.passRetained(newEvent)
 }
 
 extension ScrollManager {

@@ -6,11 +6,25 @@ A lightweight macOS menu bar app that reverses mouse scroll direction — withou
 
 macOS applies "natural scrolling" to both trackpad and mouse. If you prefer natural scrolling on trackpad but traditional scrolling on mouse, this app fixes that.
 
+## Install
+
+Download the latest `.app` from [Releases](https://github.com/hulryung/mac-mouse-scroll-is-bulpyun/releases), unzip, and move to `/Applications`.
+
+Or build from source:
+
+```bash
+git clone https://github.com/hulryung/mac-mouse-scroll-is-bulpyun.git
+cd mac-mouse-scroll-is-bulpyun
+bash build.sh
+open mac-mouse-scroll-is-bulpyun.app
+```
+
 ## Features
 
 - Reverses only mouse scroll direction (trackpad untouched)
 - Lives in the menu bar — no Dock icon
 - One-click toggle on/off
+- Auto-activates after granting Accessibility permission
 - Launch at login support (macOS 13+)
 - Zero dependencies, pure Swift + AppKit
 
@@ -18,22 +32,6 @@ macOS applies "natural scrolling" to both trackpad and mouse. If you prefer natu
 
 - macOS 13.0+
 - Accessibility permission (prompted on first launch)
-
-## Build
-
-```bash
-git clone https://github.com/hulryung/mac-mouse-scroll-is-bulpyun.git
-cd mac-mouse-scroll-is-bulpyun
-bash build.sh
-```
-
-## Run
-
-```bash
-open mac-mouse-scroll-is-bulpyun.app
-```
-
-On first launch, macOS will ask for Accessibility permission. Grant it in **System Settings > Privacy & Security > Accessibility**.
 
 ## Usage
 
@@ -43,9 +41,19 @@ Click the mouse icon in the menu bar to:
 - Open **Settings** window (with ON/OFF switch and launch at login option)
 - **Quit** the app
 
+On first launch, the app will open System Settings for you. Grant Accessibility permission in **System Settings > Privacy & Security > Accessibility**, and scroll reversal activates automatically.
+
+> **Note:** If you rebuild from source, macOS treats the new binary as a different app. You may need to remove the old entry and re-grant Accessibility permission.
+
 ## How It Works
 
-Uses `CGEventTap` to intercept scroll wheel events. It checks `scrollWheelEventIsContinuous` to distinguish mouse (discrete, value `0`) from trackpad (continuous, value `1`), and only reverses the mouse events.
+Uses `CGEventTap` at the HID level to intercept scroll wheel events. It checks `scrollWheelEventIsContinuous` to distinguish mouse (discrete, `0`) from trackpad (continuous, `1`). For mouse events, it creates a new `CGEvent` with reversed delta values, bypassing the original IOHIDEvent that macOS would otherwise use to determine scroll direction.
+
+## Support
+
+If you find this app useful, consider supporting the project:
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/hulryung)
 
 ## License
 

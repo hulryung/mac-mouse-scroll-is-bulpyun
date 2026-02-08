@@ -20,6 +20,18 @@ class SettingsWindowController: NSWindowController {
         self.init(window: window)
         setupUI()
         loadSettings()
+
+        // 상태 변경 알림 관찰
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(scrollStateDidChange),
+            name: .scrollReversalStateChanged,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     private func setupUI() {
@@ -69,9 +81,10 @@ class SettingsWindowController: NSWindowController {
     }
 
     func loadSettings() {
-        let enabled = UserDefaults.standard.bool(forKey: "scrollReversalEnabled")
-        scrollToggle.state = enabled ? .on : .off
-        statusLabel.stringValue = enabled ? "켜짐" : "꺼짐"
+        // 실제 ScrollManager 상태를 반영 (UserDefaults가 아닌 실제 동작 상태)
+        let running = ScrollManager.shared.isRunning
+        scrollToggle.state = running ? .on : .off
+        statusLabel.stringValue = running ? "켜짐" : "꺼짐"
 
         if #available(macOS 13.0, *) {
             let status = SMAppService.mainApp.status
@@ -81,21 +94,35 @@ class SettingsWindowController: NSWindowController {
         }
     }
 
+    @objc private func scrollStateDidChange() {
+        loadSettings()
+    }
+
     @objc private func scrollToggleChanged(_ sender: NSSwitch) {
         let enabled = sender.state == .on
-        UserDefaults.standard.set(enabled, forKey: "scrollReversalEnabled")
-        statusLabel.stringValue = enabled ? "켜짐" : "꺼짐"
 
         if enabled {
-            let success = ScrollManager.shared.start()
-            if !success {
-                // 접근성 권한이 없는 경우 토글 되돌리기
+            let result = ScrollManager.shared.start()
+            switch result {
+            case .success, .alreadyRunning:
+                UserDefaults.standard.set(true, forKey: "scrollReversalEnabled")
+                statusLabel.stringValue = "켜짐"
+            case .needsAccessibility:
+                // 접근성 권한 부여 후 자동 시작되도록 폴링
+                ScrollManager.shared.startPermissionPolling()
+                sender.state = .off
+                statusLabel.stringValue = "권한 대기 중..."
+                showAccessibilityGuide()
+            case .eventTapFailed:
                 sender.state = .off
                 statusLabel.stringValue = "꺼짐"
                 UserDefaults.standard.set(false, forKey: "scrollReversalEnabled")
+                showEventTapError()
             }
         } else {
             ScrollManager.shared.stop()
+            UserDefaults.standard.set(false, forKey: "scrollReversalEnabled")
+            statusLabel.stringValue = "꺼짐"
         }
     }
 
@@ -122,5 +149,28 @@ class SettingsWindowController: NSWindowController {
         loadSettings()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func showAccessibilityGuide() {
+        // 시스템 설정 > 접근성 열기
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "접근성 권한 필요"
+        alert.informativeText = "시스템 설정이 열렸습니다.\n\n1. \"mac-mouse-scroll-is-bulpyun\" 항목을 찾아 토글을 켜주세요.\n2. 이미 있지만 꺼져 있다면, 제거 후 다시 추가해주세요.\n3. 목록에 없다면 \"+\" 버튼으로 이 앱을 추가해주세요.\n\n권한을 부여하면 자동으로 활성화됩니다."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "확인")
+        alert.runModal()
+    }
+
+    private func showEventTapError() {
+        let alert = NSAlert()
+        alert.messageText = "스크롤 반전 활성화 실패"
+        alert.informativeText = "이벤트 탭 생성에 실패했습니다.\n접근성 권한을 확인하고 앱을 다시 실행해주세요."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "확인")
+        alert.runModal()
     }
 }
