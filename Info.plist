@@ -11,9 +11,9 @@
     <key>CFBundleExecutable</key>
     <string>mac-mouse-scroll-is-bulpyun</string>
     <key>CFBundleVersion</key>
-    <string>1.0</string>
+    <string>1.0.0</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.0.0</string>
     <key>CFBundlePackagetype</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
