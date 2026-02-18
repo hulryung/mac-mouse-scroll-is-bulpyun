@@ -8,9 +8,17 @@ macOS는 "자연스러운 스크롤"을 트랙패드와 마우스에 동시에 �
 
 ## 설치
 
-[Releases](https://github.com/hulryung/mac-mouse-scroll-is-bulpyun/releases)에서 최신 `.app`을 다운로드하고, 압축을 풀어 `/Applications`으로 이동하세요.
+### Homebrew (추천)
 
-또는 소스에서 빌드:
+```bash
+brew install --cask hulryung/tap/mac-mouse-scroll-is-bulpyun
+```
+
+### 수동 설치
+
+[Releases](https://github.com/hulryung/mac-mouse-scroll-is-bulpyun/releases)에서 최신 `.dmg`를 다운로드하고, 열어서 앱을 `/Applications`으로 드래그하세요.
+
+### 소스에서 빌드
 
 ```bash
 git clone https://github.com/hulryung/mac-mouse-scroll-is-bulpyun.git

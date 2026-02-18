@@ -108,11 +108,10 @@ class SettingsWindowController: NSWindowController {
                 UserDefaults.standard.set(true, forKey: "scrollReversalEnabled")
                 statusLabel.stringValue = "켜짐"
             case .needsAccessibility:
-                // 접근성 권한 부여 후 자동 시작되도록 폴링
+                // 접근성 권한 부여 후 자동 시작되도록 폴링 (시스템 다이얼로그가 자동으로 표시됨)
                 ScrollManager.shared.startPermissionPolling()
                 sender.state = .off
                 statusLabel.stringValue = "권한 대기 중..."
-                showAccessibilityGuide()
             case .eventTapFailed:
                 sender.state = .off
                 statusLabel.stringValue = "꺼짐"
@@ -149,20 +148,6 @@ class SettingsWindowController: NSWindowController {
         loadSettings()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-    }
-
-    private func showAccessibilityGuide() {
-        // 시스템 설정 > 접근성 열기
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
-        }
-
-        let alert = NSAlert()
-        alert.messageText = "접근성 권한 필요"
-        alert.informativeText = "시스템 설정이 열렸습니다.\n\n1. \"mac-mouse-scroll-is-bulpyun\" 항목을 찾아 토글을 켜주세요.\n2. 이미 있지만 꺼져 있다면, 제거 후 다시 추가해주세요.\n3. 목록에 없다면 \"+\" 버튼으로 이 앱을 추가해주세요.\n\n권한을 부여하면 자동으로 활성화됩니다."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "확인")
-        alert.runModal()
     }
 
     private func showEventTapError() {

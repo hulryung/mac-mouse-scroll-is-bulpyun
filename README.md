@@ -8,9 +8,17 @@ macOS applies "natural scrolling" to both trackpad and mouse. If you prefer natu
 
 ## Install
 
-Download the latest `.app` from [Releases](https://github.com/hulryung/mac-mouse-scroll-is-bulpyun/releases), unzip, and move to `/Applications`.
+### Homebrew (Recommended)
 
-Or build from source:
+```bash
+brew install --cask hulryung/tap/mac-mouse-scroll-is-bulpyun
+```
+
+### Manual
+
+Download the latest `.dmg` from [Releases](https://github.com/hulryung/mac-mouse-scroll-is-bulpyun/releases), open it, and drag the app to `/Applications`.
+
+### Build from Source
 
 ```bash
 git clone https://github.com/hulryung/mac-mouse-scroll-is-bulpyun.git
