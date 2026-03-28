@@ -1,5 +1,8 @@
 # mac-mouse-scroll-is-bulpyun
 
+> **⚠️ This project is no longer actively maintained.**
+> I recommend using [**Mos**](https://mos.caldis.me/) instead — it's a fantastic open-source app that does the same thing and much more. Shoutout to the Mos team!
+
 [한국어](README.ko.md)
 
 A lightweight macOS menu bar app that reverses mouse scroll direction — without affecting your trackpad.

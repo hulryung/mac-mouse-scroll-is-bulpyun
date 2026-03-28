@@ -1,5 +1,8 @@
 # mac-mouse-scroll-is-bulpyun
 
+> **⚠️ 이 프로젝트는 당분간 개발을 중단합니다.**
+> 대신 [**Mos**](https://mos.caldis.me/)를 추천합니다 — 같은 기능은 물론 더 많은 기능을 제공하는 훌륭한 오픈소스 앱입니다. Mos 팀에게 shoutout!
+
 [English](README.md)
 
 맥에서 마우스 스크롤 방향만 반전시키는 메뉴바 앱입니다. 트랙패드는 건드리지 않습니다.
